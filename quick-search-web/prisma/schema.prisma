@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   // Hashed password in real app (demo uses simple check)
+  role      String   @default("USER") // ADMIN, USER
+  createdAt DateTime @default(now())
+}
+
+model ScriptConfig {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // DBSHEET, SMARTSHEET
+  file_id     String
+  script_id   String
+  token       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
