@@ -1,0 +1,865 @@
+WPS多维表格：“开发”功能使用说明文档
+简介：
+多维表“开发”功能，给用户提供撰写 JavaScript 脚本的能力，使多维表能够执行自定义自动化任务。
+说明：
+更多内置功能请见： https://airsheet.wps.cn/docs/api/build-in.html
+
+“开发” 功能已支持 HTTP 能力，详细调用请见：https://airsheet.wps.cn/docs/api/advanced/HTTP.html
+
+　　脚本使用标准 JavaScript 创建。
+　　version : ECMAScript6 , ECMAScript5
+　　mode: Strict
+自定义脚本规则：
+　　命名：遵循 JavaScript 函数命名的标准规范，同时不能和OpenApi提供对象重名。
+　　基本数据类型：
+Boolean type
+Null type
+Undefined type
+Number type
+String type
+内置对象：
+Object
+Array
+Map
+JSON
+BigInt
+Math
+Date
+Error 
+内置函数：
+isNaN()
+parseFloat()
+parseInt()
+decodeURI()
+decodeURIComponent()
+encodeURI()
+encodeURIComponent()
+RegExp()
+全局对象：
+Application(DB OpenApi)
+日志输出： 
+console.log 
+console.error
+console.info
+　　自动补全：
+　　支持自定义函数的自动补全功能。支持JsDoc。
+1 /**
+2  * 数字增加1.
+3  *
+4  * @param {number} input 被加数.
+5  * @return +1.
+6  * @customfunction
+7  */
+8 function inc(input) {
+9   return input + 1;
+10 }
+11 
+自动化中运行：
+新版本自动化请看这里  执行AirScript脚本操作使用指南
+在自动化中，如果左侧是增改多维表数据，右侧是执行脚本，那么可传递 2 个变量：
+Context.argv.id：执行行的 ID
+Context.argv.sheetId：执行行的表 ID
+如果希望调试这 2 个变量，可以将它发送到金山协作或者企业微信机器人：
+1 // 金山协作示例
+2 HTTP.fetch(机器人地址, {
+3   method: "POST",
+4   body: JSON.stringify({
+5     "msgtype": "markdown",
+6     "markdown": {
+7       "text": `${Context.argv.sheetId} ${Context.argv.id}`
+8     }
+9   }),
+10 });
+
+快速上手
+快速入门多维表“开发”
+附件1：多维表 API 说明
+Sheet 表操作
+1.获取所有表信息
+调用方式：Application.Sheet.GetSheets()
+返回值：返回 Array[] 表示获取的多张表数据，每条数据记录单项表的各种信息，单条数据其字段说明如下所示
+属性	数据类型	说明
+fields	Array[]	表字段信息
+id	Number	表Id
+name	String	表名称
+primaryFieldId	String	表首字段Id
+recordsCount	Number	表的记录数量
+views	Array[]	表的视图列表
+代码示例
+1 const sheets = Application.Sheet.GetSheets()
+2 console.log(sheets)
+返回数据示例
+1  [
+2    {"fields":[
+3       {"id":"F","name":"名称","type":"MultiLineText"},
+4       {"id":"G","name":"分类","type":"MultiLineText"},
+5       {"id":"S","name":"数量","type":"Number"},
+6       {"id":"q","name":"联系人","supportMulti":true,"type":"Contact"}
+7      ],
+8      "id":3,
+9      "name":"商品表",
+10      "primaryFieldId":"F",
+11      "recordsCount":304,
+12      "views":[
+13         {"id":"C","name":"表","recordsCount":0,"type":"Grid"},
+14         {"id":"I","name":"表视图","recordsCount":304,"type":"Grid"},
+15         {"id":"J","name":"看板视图","recordsCount":304,"type":"Kanban"},
+16       ]
+17     },
+18     {"fields":[
+19         {"id":"H","name":"名称","type":"MultiLineText"},
+20         {"displayText":"","id":"T","name":"跳转","type":"Url"},
+21         {"id":"W","items":[{"color":4282238394,"id":"T","value":"look"},
+22         {"color":4282238394,"id":"U","value":"money"},
+23         {"color":4282238394,"id":"V","value":"body"}
+24       ],
+25      "id":4,
+26      "name":"商品表1",
+27      "primaryFieldId":"G",
+28      "recordsCount":304,
+29       "views":[
+30         {"id":"C","name":"表","recordsCount":0,"type":"Grid"},
+31       ]
+32     }
+33  ]
+34       
+
+2.创建新的表
+调用方式：Application.Sheet.CreateSheet()
+请求参数：
+属性	数据类型	默认值	必填	说明
+Name	String	-	是	表名称
+Views	Array[]	-	是	表视图信息
+视图类型说明见  附件3
+Fields	Array[]	-	是	最少传入一个字段
+表示表字段信息
+每种字段（Field) 创建方式详见附件2
+举例：
+[
+        { name: '名称', type: 'MultiLineText' }, 
+        { name: "分类", 
+          type: "SingleSelect", 
+          items: [{value: "A"},{value: "B"}, {value: "C" }] 
+        }
+    ] 
+返回值：返回 Object 表示新创建表信息的集合，Object内字段说明如下所示
+属性	数据类型	说明
+fields	Array[]	表字段信息
+id	Number	表Id
+name	String	表名称
+primaryFieldId	String	表首字段Id
+recordsCount	Number	表的记录数量
+views	Array[]	表下的视图列表
+代码示例
+1 const sheet = Application.Sheet.CreateSheet({ 
+2     Name: '商品表',  
+3     Views: [{ name: '表', type: 'Grid' }], 
+4     Fields: [
+5         { name: '名称', type: 'MultiLineText' }, 
+6         { name: "分类", 
+7           type: "SingleSelect", 
+8           items: [{value: "A"},{value: "B"}, {value: "C" }] 
+9         }
+10     ] 
+11 })
+返回数据示例
+1 {
+2   "fields":[
+3     {"id":"LX","name":"名称","type":"MultiLineText"},
+4     {"id":"LY","items":[{"color":4282238394,"id":"DZ","value":"A"},
+5                          {"color":4282238394,"id":"Da","value":"B"},
+6                          {"color":4282238394,"id":"Db","value":"C"}
+7                         ],"name":"分类","type":"SingleSelect"}
+8   ],
+9   "id":52,
+10   "name":"商品表",
+11   "primaryFieldId":"LX",
+12   "recordsCount":1,
+13   "views":[
+14     {"id":"Cr",
+15      "name":"表",
+16      "recordsCount":1,
+17      "type":"Grid"
+18      }
+19   ]
+20 }
+
+3.删除表
+调用方式：Application.Sheet.DeleteSheet()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+返回值：返回 Object ，Object内含有字段说明如下所示
+属性	数据类型	说明
+id	Number	表Id
+代码示例
+1 Application.Sheet.DeleteSheet({ SheetId: 8 }) 
+返回数据示例
+1  {"id":8}
+4.更新表名字
+1 const result = Application.Sheet.UpdateSheet({ SheetId: 9, Name: '备份表' })
+
+调用方式：Application.Sheet.UpdateSheet()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+Name	String	-	是	更新的表名称
+返回值：返回 bool ，“true”表示更新成功，“false”表示更新失败
+代码示例
+1 const result = Application.Sheet.UpdateSheet({ SheetId: 9, Name: '备份表' })
+返回数据示例
+1  true
+View 视图操作
+1.获取视图信息
+调用方式：Application.View.GetViews()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+返回值：返回 Array[] ，表示获取的表下所有视图的列表，单项视图信息中的字段说明如下所示
+属性	数据类型	说明
+id	String	视图Id
+name	String	视图名称
+recordsCount	Number	视图的记录数量
+type	String	视图类型
+视图类型说明详见 附件3
+代码示例
+1 const views = Application.View.GetViews({ SheetId: 1 })
+返回数据示例
+1 [
+2     {"id":"Cm","name":"表","recordsCount":1,"type":"Grid"},
+3     {"id":"Cn","name":"看板","recordsCount":1,"type":"Kanban"},
+4     {"id":"Co","name":"画册","recordsCount":1,"type":"Gallery"},
+5     {"id":"Cp","name":"表单","recordsCount":1,"type":"Form"},
+6     {"id":"Cq","name":"甘特","recordsCount":1,"type":"Gantt"}
+7 ]
+
+2.创建视图
+调用方式：Application.View.CreateView()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+Name	String	-	是	视图名称
+ViewType	String	-	是	视图类型
+视图类型说明详见 附件3
+返回值：返回 Object，内含新创建视图的各种信息，视图信息中的字段说明如下所示
+属性	数据类型	说明
+id	String	视图Id
+name	String	视图名称
+recordsCount	Number	视图的记录数量
+type	String	视图类型
+视图类型说明详见 附件3
+代码示例
+1 const view = Application.View.CreateView({ 
+2     SheetId: 1, 
+3     Name: '看板', 
+4     ViewType: 'Kanban' 
+5 })
+返回数据示例
+1 {"id":"Cu","name":"看板","recordsCount":18,"type":"Kanban"}
+
+3.删除视图
+调用方式：Application.View.DeleteView()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+ViewId	String	-	是	视图Id
+返回值：返回 Object ，表示已删除的视图Id
+属性	数据类型	说明
+id	String	视图Id
+代码示例
+1 Application.View.DeleteView({ SheetId: 1, ViewId: 'F' })
+返回数据示例
+1 {"id":"Cw"}
+
+4.修改视图名称
+调用方式：Application.View.UpdateView()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+ViewId	String	-	是	视图Id
+Name	String	-	是	更新的视图名称
+返回值：返回Object ，表示已更新的视图信息，视图信息中的字段说明如下所示
+属性	数据类型	说明
+id	String	视图Id
+name	String	视图名称
+recordsCount	Number	视图的记录数量
+type	String	视图类型
+视图类型说明详见 附件3
+代码示例
+1 Application.View.UpdateView({ 
+2     SheetId: 8, 
+3     ViewId: 'E', 
+4     Name: '名单' 
+5 })
+返回数据示例
+1 {"id":"E","name":"名单","recordsCount":1,"type":"Grid"}
+
+Field 字段操作
+1.获取字段信息
+调用方式：Application.Field.GetFields()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+返回值：返回Array[] ，表示获取的表所有字段信息，字段基本属性说明如下所示
+属性	数据类型	说明
+id	String	字段Id
+name	String	字段名称
+type	String	字段类型
+具体字段类型说明详见附件2
+代码示例
+1 const fields = Application.Field.GetFields({ SheetId: 1 })
+返回数据示例
+1 [
+2  {"id":"Ce","name":"名称","type":"MultiLineText"},
+3  {"id":"Cf","name":"数量","type":"Number"},
+4  {"id":"Cg","name":"日期","type":"Date"},
+5  {"id":"Ch","name":"时间","type":"Time"},
+6  {"id":"Ci","name":"复选框","type":"Checkbox"},
+7  {"displayText":"","id":"Cj","name":"超链接","type":"Url"}
+8 ] 
+
+2.创建字段
+调用方式：Application.Field.CreateFields()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+Fields	Array[]	-	是	表的字段信息
+字段(Field) 格式说明见  附件2
+返回值：返回Array[]，表示已创建的表所有字段信息，字段基本属性说明如下所示
+属性	数据类型	说明
+id	String	字段Id
+name	String	字段名称
+type	String	字段类型
+具体字段类型说明详见附件2
+代码示例
+1 const field =  Application.Field.CreateFields({ 
+2     SheetId: 3, 
+3     Fields: [ 
+4         { name: '等级',  type: 'Rating', max: 5 }
+5     ] 
+6 })
+返回数据示例
+1 [{"id":"LZ","name":"等级","type":"Rating"}]
+3.删除字段
+调用方式：Application.Field.DeleteFields()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+FieldIds	Array[]	-	是	需要删除的字段Id
+返回值：返回Array[]，内含删除的表id以及删除是否成功，字段基本属性说明如下所示
+属性	数据类型	说明
+id	String	字段Id
+deleted	Bool	是否删除成功
+“true”表示删除成功，“false”表示删除失败
+代码示例
+1 const resutlt = Application.Field.DeleteFields({ SheetId: 8, FieldIds: ['P', 'Q'] })
+返回数据示例
+1 [{"deleted":false,"id":"P"},{"deleted":false,"id":"Q"}]
+4.更新字段
+调用方式：Application.Field.UpdateFields()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+Fields	Array[]	-	是	更新的字段信息，包含字段Id，字段name等等
+字段(Field) 格式说明见  附件2
+返回值：返回Array[]，表示已更新的字段信息，字段基本属性说明如下所示
+属性	数据类型	说明
+id	String	字段Id
+name	String	字段名称
+type	String	字段类型
+具体字段类型说明详见  附件2
+代码示例
+1 Application.Field.UpdateFields({ 
+2     SheetId: 3, 
+3     Fields: [{ id: 'LG', name: '跳转' }]
+4 })
+返回数据示例
+1 [
+2   {"displayText":"","id":"LG","name":"跳转","type":"Url"}
+3 ]
+Record 行记录
+1.获取行记录（多条）
+　　注意，每次请求最多返回100条，数据量大的时候请使用分页查询
+调用方式：Application.Record.GetRecords()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+ViewId	String	-	否	填写后将从被指定的视图获取该用户所见到的记录；若不填写，则从工作表获取记录
+PageSize	Number	100	否	存在分页时，指定本次查询的起始记录（含）。若不填写或填写为空字符串，则从第一条记录开始获取
+当前最大值：1000
+Offset	Number	-	否	分页查询时，将返回一个offset值，指向下一页的第一条记录，供后续查询。查询到最后一页或第maxRecords条记录时，返回数据将不再包含offset值 
+MaxRecords	Number	-	否	指定要获取的“前maxRecords条记录”，若不填写，则默认返回全部记录
+Fields	Array[]	-	否	具体字段类型说明详见  附件2
+Filter	Object	-	否	详细说明见 附件4
+返回值：返回Array[]，表示获取表的所有记录，每条记录包含基本信息说明如下
+属性	数据类型	说明
+id	String	记录Id
+Fields	Object	获取的字段信息，包含字段Id，字段name等等
+字段(Field) 格式说明见  附件2
+代码示例
+1 const records = Application.Record.GetRecords({ SheetId: 3 })
+2 console.log(records.records)
+返回数据示例
+1 [
+2     {"fields":{"日期":"2023/02/21"},"id":"BH5"},
+3     {"fields":{"日期":"2023/02/08"},"id":"BIs"}
+4 ]
+
+1 // 分页查询例子
+2 function fetchAllRecords() {
+3   const view = Application.Selection.GetActiveView()
+4   let all = []
+5   let offset = null;
+6 
+7   while (all.length === 0 || offset) {
+8     let records = Application.Record.GetRecords({
+9       SheetId: view.sheetId,
+10       ViewId: view.viewId,
+11       Offset: offset,
+12     })
+13     offset = records.offset
+14     all = all.concat(records.records)
+15   }
+16   console.log(all.length)
+17   return all
+18 }
+19 
+20 fetchAllRecords()
+2.获取行记录（单条）
+调用方式：Application.Record.GetRecord()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+RecordId	String	-	是	表中指定获取的记录id
+返回值：返回Object，表示获取表的指定的单条记录，记录包含基本信息说明如下
+属性	数据类型	说明
+id	String	记录Id
+Fields	Object	获取的字段信息，包含字段Id，字段name等等
+字段(Field) 格式说明见  附件2
+代码示例
+1 const record = Application.Record.GetRecord({ SheetId: 3, RecordId: 'Bz' })
+返回数据示例
+1  {"fields":{"日期":"2023/02/21"},"id":"Bz"}
+
+3.删除行记录
+1 const result = Application.Record.DeleteRecords({ 
+2     SheetId: 3, 
+3     RecordIds: ['J', 'P', 'Q'] 
+4 })
+调用方式：Application.Record.DeleteRecords()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+RecordIds	Array[]	-	是	表中需要删除的记录id
+返回值：返回Object，包含基本信息说明如下
+属性	数据类型	说明
+id	String	记录Id
+deleted	Bool	是否删除成功
+“true”表示删除成功，“false”表示删除失败
+代码示例
+1 const result = Application.Record.DeleteRecords({ 
+2     SheetId: 3, 
+3     RecordIds: ['J', 'P', 'Q'] 
+4 })
+返回数据示例
+1  [
+2     {"deleted":true,"id":"J"},
+3     {"deleted":true,"id":"P"},
+4     {"deleted":true,"id":"Q"}
+5 ]
+4.更新行记录
+调用方式：Application.Record.UpdateRecords()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+Records	Array[]	-	是	需要更新的表记录信息
+ 字段(Field) 格式说明见  附件2
+示例：
+Records: [{
+            id: 'A',
+            fields: {
+                 邮箱: 'demo@qq.com',
+                 多选: ['1', '2'],
+                 "记录关联": {
+                    "recordIds": ["I", "K"] 
+                 }
+            }
+        }]
+返回值：返回Array[]，表示表的已更新的所有记录，每条记录包含基本信息说明如下
+属性	数据类型	说明
+id	String	记录Id
+fields	Object	每条记录的所有字段信息
+字段(Field) 格式说明见  附件2
+代码示例
+1  const records = Application.Record.UpdateRecords({
+2         SheetId: 5,
+3         Records: [{
+4             id: 'A',
+5             fields: {
+6                  邮箱: 'demo@qq.com',
+7                  多选: ['1', '2'],
+8                  "记录关联": {
+9                     "recordIds": ["I", "K"] 
+10                  }
+11             }
+12         }],
+13     })
+返回数据示例
+1 [
+2     {"fields":{
+3                  邮箱: 'demo@qq.com',
+4                  多选: ['1', '2'],
+5                  "记录关联": {
+6                     "recordIds": ["I", "K"] 
+7                  },"
+8      id":"A"},
+9 ]
+5. 创建行记录
+调用方式：Application.Record.CreateRecords()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+Records	Array[]	-	是	需要创建的表记录信息，
+Field 格式说明见  附件2
+示例：
+Records: [{
+            fields: {
+                 邮箱: 'demo@qq.com',
+                 多选: ['1', '2'],
+                 "记录关联": {
+                    "recordIds": ["I", "K"] 
+                 }
+            }
+        }]
+返回值：返回Array[]，表示表的已创建的所有记录，每条记录包含基本信息说明如下
+属性	数据类型	说明
+id	String	记录Id
+fields	Object	每条记录的所有字段信息
+字段(Field) 格式说明见  附件2
+代码示例
+创建邮箱和多选
+
+1   const records = Application.Record.CreateRecords({
+2         SheetId: 5,
+3         Records: [{
+4             fields: {
+5                  邮箱: 'demo@qq.com',
+6                  多选: ['1', '2'],
+7             }
+8         }, {
+9             fields: {
+10                  邮箱: 'demo@qq.com',
+11                  多选: ['1', '2'],
+12             }
+13         }],
+14     })
+
+创建联系人
+
+1   const records = Application.Record.CreateRecords({
+2   SheetId: 3,
+3   Records: [
+4     {  fields: { '联系人': [{ name: 'yourname', nickName: 'yourname', id: '88888888', avatar_url: 'https://avatar.qwps.cn/avatar/5b2t57-U' }] } },
+5   ],
+6 });
+返回数据示例
+1 [
+2     {"fields":{
+3                  "邮箱": 'demo@qq.com',
+4                  "多选": ['1', '2']
+5                },
+6      "id":"A"},
+7     {"fields":{
+8                 "邮箱": 'demo@qq.com',
+9                  "多选": ['1', '2']
+10                },
+11      "id":"A"}
+12 ]
+5.获取上传附件或图片的URL
+调用方式：Application.Record.GetAttachmentURL()
+返回值: 返回String，为获取上传附件或图片的URL，打开该URL可进行附件或图片下载
+请求参数：
+注意：必须至少传入1个参数“Attachment” 或者传入2个参数“UploadId”和 “Source”
+属性	数据类型	默认值	必填	说明
+Attachment	String	-		附件
+UploadId	String	-		上传文件id
+Source	String	-		source参数必须为"upload_ks3"（本地上传）或"cloud"（云上传）
+代码示例
+1 const resultURL = Application.Record.GetAttachmentURL({
+2     Attachment: "IKWRCBAAKA|upload_ks3|image/png|QQ图片20230214165215.png|12070||549*106",
+3       })
+4 
+5 //or
+6 
+7 const resultURL = Application.Record.GetAttachmentURL({
+8     UploadId: "IKWRCBAAKA",
+9     Source: "upload_ks3"
+10       })
+返回数据示例
+1 https://ksc-bj-beta.ag.wps.cn/api/object/2_d1a59486c82747aa92305bfc8c4f95bb/compatible
+Selection 选区
+1.获取当前选中视图
+调用方式：Application.Selection.GetActiveView()
+返回值：返回Object，表示表的已更新的所有记录，每条记录包含基本信息说明如下
+属性	数据类型	说明
+id	String	视图Id
+name	String	视图名称
+recordsCount	Number	视图的记录数量
+type	String	视图类型
+视图类型说明详见附件3
+代码示例
+1 const view = Application.Selection.GetActiveView()
+返回数据示例
+1  {
+2    "sheetId":4,
+3    "viewId":"D",
+4    "name":"表",
+5    "type":"Grid"
+6 }
+
+2. 获取选中记录信息
+　　a.  这里返回的 records是一个二维数组，因为选中记录可以是不连续的，如果是连续的记录，那么可以直接去 records[0]
+调用方式：Application.Selection.GetSelectionRecords()
+返回值：返回Array[]，表示多维表的选中的所有记录，每条记录包含基本信息说明如下
+属性	数据类型	说明
+id	String	记录Id
+fields	Object	每条记录的所有字段信息
+具体字段类型说明详见  附件2
+代码示例
+1 Application.Selection.GetSelectionRecords()
+返回数据示例
+1 [
+2     [
+3       {"id":"BH6","fields":[
+4         {"type":"MultiLineText","name":"名称","id":"H","value":""},
+5         {"type":"SingleSelect","name":"分类","id":"I","value":""}
+6     ]
+7 },
+8       {"id":"BH7","fields":[
+9         {"type":"MultiLineText","name":"名称","id":"H","value":""},
+10         {"type":"SingleSelect","name":"分类","id":"I","value":""}
+11     ]
+12 }
+13 ]
+14 ]
+
+3.设置选中的视图 
+由于脚本执行机制改变，此 API 已废弃，请勿使用
+调用方式：Application.Selection.SetActiveView()
+请求参数：
+属性	数据类型	默认值	必填	说明
+SheetId	Number	-	是	表Id
+ViewId	String	-	是	需要被选中的视图Id
+返回值：返回 Object，内含选中视图的各种信息，视图信息中的字段说明如下所示
+属性	数据类型	说明
+id	String	视图Id
+name	String	视图名称
+recordsCount	Number	视图的记录数量
+type	String	视图类型
+视图类型说明详见附件3
+代码示例
+1 Application.Selection.SetActiveView({ SheetId: 27, ViewId: 'Q' })
+返回数据示例
+1  {"sheetId":2,"viewId":"Q","name":"表","type":"Grid"}
+
+4.获取当前选中表
+调用方式：Application.Selection.GetActiveSheet()
+返回值：返回Object，内含选中表的基本信息，记录包含基本信息说明如下
+属性	数据类型	说明
+sheetId	String	表Id
+name	String	表名称
+description	String	表的描述
+代码示例
+1 const sheet = Application.Selection.GetActiveSheet()
+返回数据示例
+1  {"sheetId":4,"name":"商品表","description":""}
+
+附件2：多维表字段类型说明
+可以参考 示例 
+字段类型	Type 	创建字段格式	设置字段值传入形式	读取字段值传出形式	备注
+多行文本	MultiLineText	无特殊要求	字符串/  无特殊格式要求	字符串	
+日期	Date 	无特殊要求	字符串/  "yyyy/mm/dd"	字符串/  "yyyy/mm/dd"	
+时间	Time	无特殊要求	字符串/  "hh:mm:ss"	字符串/  "hh:mm:ss"	
+数值	Number	无特殊要求	数值 /  无格式	数值	
+货币	Currency	无特殊要求	数值 /  无格式	数值	
+百分比	Percentage	无特殊要求	数值 / 无格式	数值	
+身份证  	ID	无特殊要求	字符串 / 符合身份证规则	字符串	
+电话	Phone	无特殊要求	字符串 / 符合电话规则	字符串	
+电子邮箱	Email	无特殊要求	字符串 / 符合邮箱规则	字符串	
+超链接	Url	可以额外传入一个参数
+displayText：指定超链接显示文本
+{
+　　"name":   "超链接",
+　　"type":  "Url",
+　　"displayText":  "跳转"
+}	1.字符串 / 符合 Url 规则
+2.结构体（适用于非按钮状态）： 
+{
+address: "www.kdocs.cn",
+displayText: "金山文档",
+}	字符串	
+复选框	Checkbox	无特殊要求	 true / false	true/ false	
+单选项	SingleSelect	需要额外传入选项值，至少一个
+{
+　　"name":   "单选项",
+　　"type":  "SingleSelect",
+　　"items": [{ "value": "item1"  }]
+}	字符串  / 匹配选项内容	字符串	
+多选项	MultipleSelect	需要额外传入选项值，至少一个
+{
+　　"name":   "多选项",
+　　"type":  "MultipleSelect",
+　　"items": [{ "value": "item1"  }, { "value": "item2" }]
+}	字符串数组 / 匹配选项内容	字符串数组	
+等级	Rating 	需要额外传入一个 最大等级, 最大等级大于0小于等于5
+{
+　　"name":   "等级",
+　　"type":  "Rating",
+　　"max": 5,
+}	数值 /  大于 0 并且 小于 最大等级	数值	
+进度条	Complete	无特殊要求	数值 /    大于等于0 并且 小于 1	数值（小数）	
+联系人	Contact	需要额外传入两个参数
+"multipleContacts": <bool> 是否支持多个联系人
+"noticeNewContact": <bool> 是否通知联系人
+{
+　　"name":   "联系人",
+　　"type":  "Contact",
+　　"multipleContacts":  false,
+　　"noticeNewContact": false
+}	参数是数组，元素的格式是结构体
+每个结构体必须包含 id 参数，
+可选 nickname 及 avatar_url 参数
+¢id, nickname 及 avatar_url 均为字符串
+¢同时存在 nickname 及 avatar_url 参数时，会用它们设置/更新 id 的联系人信息
+¢示例：	{"id": "{string_content}", "nickName": "{string_content}"} or [{"id": "{string_content}", "nickName": "{string_content}"}, ...]	
+附件	Attachment 	无特殊要求	1.参数是数组
+2.每个附件信息，必须包含字段
+a.uploadId：上传的附件 ID
+b.fileName：附件名称
+c.source：类型 'upload_ks3'
+d.type：'image/jpeg' 或者 'image/png'等
+e.size：图片尺寸
+f.imgSize：图片宽高	1 "照片/附件": [{
+2   "uploadId": object_id,
+3   "fileName": "照片.jpg",
+4   "source": 'upload_ks3',
+5   "type": "image/jpeg",
+6   "size": 4470,
+7   "imgSize": '180*180',
+8 }]	
+关联	Link	需要额外传入二个参数
+"linkSheet":  关联表 ID
+"multipleLinks": 是否关联多条记录
+{
+　　"name":   "关联",
+　　"type":  "Link",
+　　"linkSheet":  1,
+　　"multipleLinks": false
+}
+	对应关联表的行记录数组
+格式为 {
+　　recordsIds: []
+}		
+富文本	Note 	无特殊要求	不支持设值	{\"fileId\":\"PKS7GAQAGE\",\"shortSummary\":\"rich 1\",\"modifyDate\":1658981246958}"	自动同步富文本文档内容
+编号	AutoNumber	无特殊要求	不支持设值	数值	自动类型
+创建者	CreatedBy	无特殊要求	不支持设值	{"id": "{string_content}", "nickName": "{string_content}"}	自动类型
+创建时间	CreatedTime	无特殊要求	不支持设值	字符串/ "yyyy/mm/dd hh:mm:ss"	自动类型
+公式	Formula	无特殊要求	不支持设值	根据公式的值类型, 形式可能为文本/数值/逻辑值/联系人/时间/日期	自动类型
+引用	Lookup 	无特殊要求	不支持设值	与被引用形式相同	自动类型
+附件3： 多维表视图类型说明
+可以参考 示例 
+1 视图类型              说明
+2 --------------------------
+3 Grid                表视图
+4 Kanban              看板视图
+5 Gallery             画册视图
+6 Form                表单视图
+7 Gantt               甘特视图
+
+附件4：筛选记录说明
+1.Object筛选参数格式
+1 {
+2     "mode": "AND", // 选填。表示各筛选条件之间的逻辑关系。只能是"AND"或"OR"。缺省值为"AND"
+3     "criteria": [ // filter结构体内必填。包含筛选条件的数组。每个字段上只能有一个筛选条件
+4         {
+5             "field": "名称", // 必填。根据 preferId 与否，需要填入字段名或字段id
+6             "op": "Intersected", // 必填。表示具体的筛选规则，见下
+7             "values": [ // 必填。表示筛选规则中的值。数组形式。
+8                 "多维表", // 值为字符串时表示文本匹配
+9                 "12345"
+10             ]
+11         },
+12         {
+13             "field": "数量",
+14             "op": "greater",
+15             "values": [
+16                 "1"
+17             ]
+18         }
+19     ]
+20 }
+
+注 1：这里的 mode 必须大写，否则会出错
+注 2：这里的 values，必须是一个数组，传 ["多维表"]，相当于传 [{ type: 'Text', value: '多维表' }]，即不传默认帮你补充 Text 类型
+注 3：复选框的值，values: ['0'] 代表否，value: ['1'] 代表是
+
+2. 筛选条件 op 参数说明
+1 • "Equals": 等于
+2 • "NotEqu": 不等于
+3 • "Greater": 大于
+4 • "GreaterEqu": 大等于
+5 • "Less": 小于
+6 • "LessEqu": 小等于
+7 • "GreaterEquAndLessEqu": 介于（取等）
+8 • "LessOrGreater": 介于（不取等）
+9 • "BeginWith": 开头是
+10 • "EndWith": 结尾是
+11 • "Contains": 包含
+12 • "NotContains": 不包含
+13 • "Intersected": 指定值
+14 • "Empty": 为空
+15 • "NotEmpty": 不为空
+　　values[]数组内的元素为字符串时，表示文本匹配
+　　各筛选规则独立地限制了values数组内最多允许填写的元素数，当values内元素数超过阈值时，该筛选规则将失效。
+a.“为空、不为空”不允许填写元素；
+b.“介于”允许最多填写2个元素；
+c.“指定值”允许填写65535个元素；
+d.其他规则允许最多填写1个元素
+3. 日期的动态筛选
+具体例子可查看快速入门多维表“开发”
+目前还支持对日期进行动态筛选，此时values[]内的元素需以结构体的形式给出：
+1 "filter": {
+2             "mode": "AND",
+3             "criteria": [
+4                 {
+5                     "field": "日期",
+6                     "op": "Equals",
+7                     "values": [
+8                         {
+9                             "dynamicType": "lastMonth",
+10                             "type": "DynamicSimple"
+11                         }
+12                     ]
+13                 }
+14             ]
+15         }
+
+上述示例对应的筛选条件为“等于上一个月”。
+要使用日期动态筛选，values[]内的结构体需要指定"type": "DynamicSimple"，当"op"为"equals"时，"dynamicType"可以为如下的值（大小写不敏感）：
+1 • "today": 今天
+2 • "yesterday": 昨天
+3 • "tomorrow": 明天
+4 • "last7Days": 最近7天
+5 • "last30Days": 最近30天
+6 • "thisWeek": 本周
+7 • "lastWeek": 上周
+8 • "nextWeek"：下周
+9 • "thisMonth": 本月
+10 • "lastMonth": 上月
+11 • "nextMonth": 次月
+当"op"为"greater"或"less"时，"dynamicType"只能是昨天、今天或明天。
+
+
+
+
+

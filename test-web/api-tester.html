@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WPS多维表格 API 测试工具</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #242424;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #4f8cff;
+            --accent-hover: #6ba0ff;
+            --success: #34d399;
+            --error: #f87171;
+            --border: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        h1::before {
+            content: '';
+            width: 4px;
+            height: 1.5rem;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.15);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-secondary.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .status.loading {
+            background: rgba(79, 140, 255, 0.1);
+            color: var(--accent);
+        }
+
+        .status.success {
+            background: rgba(52, 211, 153, 0.1);
+            color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(248, 113, 113, 0.1);
+            color: var(--error);
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .result-container {
+            display: none;
+        }
+
+        .result-container.visible {
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: var(--bg-secondary);
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        th,
+        td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            font-weight: 500;
+            color: var(--text-secondary);
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .json-view {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        pre {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .json-key {
+            color: #f472b6;
+        }
+
+        .json-string {
+            color: #34d399;
+        }
+
+        .json-number {
+            color: #fbbf24;
+        }
+
+        .json-boolean {
+            color: #60a5fa;
+        }
+
+        .json-null {
+            color: #a78bfa;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .search-params {
+            display: none;
+        }
+
+        .search-params.visible {
+            display: block;
+        }
+
+        .chip {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>WPS多维表格 API 测试工具</h1>
+
+        <!-- Configuration -->
+        <div class="card">
+            <div class="card-title">⚙️ API 配置</div>
+            <div class="row">
+                <div class="form-group">
+                    <label>Webhook URL</label>
+                    <input type="text" id="webhookUrl"
+                        value="https://www.kdocs.cn/api/v3/ide/file/cjTgeyaIYvmx/script/V2-7g2JFj69OTmPenNDHdxlYT/sync_task"
+                        placeholder="输入webhook URL">
+                </div>
+                <div class="form-group">
+                    <label>AirScript Token</label>
+                    <input type="password" id="apiToken" placeholder="输入API Token">
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Selection -->
+        <div class="card">
+            <div class="card-title">🎯 操作选择</div>
+            <div class="btn-group">
+                <button class="btn-secondary active" data-action="getAll">获取全部表信息</button>
+                <button class="btn-secondary" data-action="search">按列搜索</button>
+                <button class="btn-secondary" data-action="details">获取表详情</button>
+            </div>
+
+            <!-- Search Parameters -->
+            <div class="search-params" id="searchParams">
+                <div class="row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label>数据表名称</label>
+                        <input type="text" id="sheetName" placeholder="例如: 报价建号数据表">
+                    </div>
+                    <div class="form-group">
+                        <label>列名称</label>
+                        <input type="text" id="columnName" placeholder="例如: 配件编码">
+                    </div>
+                    <div class="form-group">
+                        <label>搜索值</label>
+                        <input type="text" id="searchValue" placeholder="输入搜索关键词">
+                    </div>
+                    <div class="form-group">
+                        <label>操作符</label>
+                        <select id="searchOp">
+                            <option value="Contains">包含 (Contains)</option>
+                            <option value="Equals">等于 (Equals)</option>
+                            <option value="BeginWith">开头是 (BeginWith)</option>
+                            <option value="EndWith">结尾是 (EndWith)</option>
+                            <option value="NotContains">不包含 (NotContains)</option>
+                            <option value="NotEqu">不等于 (NotEqu)</option>
+                            <option value="Empty">为空 (Empty)</option>
+                            <option value="NotEmpty">不为空 (NotEmpty)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details Parameters -->
+            <div class="search-params" id="detailsParams">
+                <div class="row" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label>数据表名称</label>
+                        <input type="text" id="detailsSheetName" placeholder="例如: 报价建号数据表">
+                    </div>
+                    <div class="form-group">
+                        <label>示例数据行数</label>
+                        <input type="number" id="sampleSize" value="5" min="1" max="20">
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 1.5rem;">
+                <button class="btn-primary" id="executeBtn">执行请求</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status hidden" id="status">
+            <div class="spinner"></div>
+            <span id="statusText">正在请求...</span>
+        </div>
+
+        <!-- Results -->
+        <div class="card result-container" id="resultContainer">
+            <div class="card-title">📊 返回结果</div>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="table">表格视图</button>
+                <button class="tab" data-tab="json">JSON视图</button>
+            </div>
+
+            <div class="tab-content active" id="tableView">
+                <div class="table-container" id="tableContainer">
+                    <div class="empty-state">暂无数据</div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="jsonView">
+                <div class="json-view">
+                    <pre id="jsonContent"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentAction = 'getAll';
+        let lastResult = null;
+
+        // DOM Elements
+        const webhookUrl = document.getElementById('webhookUrl');
+        const apiToken = document.getElementById('apiToken');
+        const executeBtn = document.getElementById('executeBtn');
+        const status = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        const resultContainer = document.getElementById('resultContainer');
+        const tableContainer = document.getElementById('tableContainer');
+        const jsonContent = document.getElementById('jsonContent');
+        const searchParams = document.getElementById('searchParams');
+        const detailsParams = document.getElementById('detailsParams');
+
+        // Action buttons
+        document.querySelectorAll('[data-action]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-action]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentAction = btn.dataset.action;
+
+                // Toggle parameters visibility
+                searchParams.classList.toggle('visible', currentAction === 'search');
+                detailsParams.classList.toggle('visible', currentAction === 'details');
+            });
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + 'View').classList.add('active');
+            });
+        });
+
+        // Execute request
+        executeBtn.addEventListener('click', async () => {
+            const url = webhookUrl.value.trim();
+            const token = apiToken.value.trim();
+
+            if (!url) {
+                showStatus('error', '请输入Webhook URL');
+                return;
+            }
+
+            if (!token) {
+                showStatus('error', '请输入API Token');
+                return;
+            }
+
+            // Build request body
+            const argv = { action: currentAction };
+
+            if (currentAction === 'search') {
+                const sheetName = document.getElementById('sheetName').value.trim();
+                const columnName = document.getElementById('columnName').value.trim();
+                const searchValue = document.getElementById('searchValue').value;
+                const op = document.getElementById('searchOp').value;
+
+                if (!sheetName || !columnName) {
+                    showStatus('error', '请输入数据表名称和列名称');
+                    return;
+                }
+
+                argv.sheetName = sheetName;
+                argv.columnName = columnName;
+                argv.searchValue = searchValue;
+                argv.op = op;
+            } else if (currentAction === 'details') {
+                const sheetName = document.getElementById('detailsSheetName').value.trim();
+                const sampleSize = parseInt(document.getElementById('sampleSize').value) || 5;
+
+                if (!sheetName) {
+                    showStatus('error', '请输入数据表名称');
+                    return;
+                }
+
+                argv.sheetName = sheetName;
+                argv.sampleSize = sampleSize;
+            }
+
+            showStatus('loading', '正在请求...');
+
+            try {
+                // When running through local server, use proxy path
+                let fetchUrl = url;
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    // Extract the API path from the full URL
+                    const urlObj = new URL(url);
+                    fetchUrl = urlObj.pathname + urlObj.search;
+                }
+
+                const response = await fetch(fetchUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'AirScript-Token': token
+                    },
+                    body: JSON.stringify({
+                        Context: { argv }
+                    })
+                });
+
+                const data = await response.json();
+
+                console.log('Raw response:', data);
+
+                // Parse the result from AirScript
+                let result;
+
+                // First try to get result directly
+                if (data.data && data.data.result && data.data.result !== '[Undefined]') {
+                    try {
+                        result = JSON.parse(data.data.result);
+                    } catch {
+                        result = data.data.result;
+                    }
+                }
+                // Fallback: extract from logs if result is undefined
+                else if (data.data && data.data.logs) {
+                    console.log('Result undefined, trying to extract from logs...');
+                    const logs = data.data.logs;
+
+                    // Try to reassemble chunked JSON
+                    let jsonChunks = {};
+                    let totalChunks = 0;
+                    let foundChunks = false;
+
+                    for (const log of logs) {
+                        if (log.args && log.args.length > 0) {
+                            const logText = log.args[0];
+                            if (typeof logText === 'string') {
+                                if (logText.startsWith('__JSON_START__:')) {
+                                    totalChunks = parseInt(logText.split(':')[1]) || 0;
+                                    foundChunks = true;
+                                }
+                                const chunkMatch = logText.match(/__JSON_CHUNK_(\d+)__:(.*)/);
+                                if (chunkMatch) {
+                                    jsonChunks[parseInt(chunkMatch[1])] = chunkMatch[2];
+                                }
+                            }
+                        }
+                    }
+
+                    if (foundChunks && Object.keys(jsonChunks).length > 0) {
+                        let fullJson = '';
+                        for (let i = 0; i < totalChunks; i++) {
+                            if (jsonChunks[i]) fullJson += jsonChunks[i];
+                        }
+                        try {
+                            result = JSON.parse(fullJson);
+                            console.log('Successfully reassembled from ' + totalChunks + ' chunks');
+                        } catch (e) {
+                            console.log('Chunk parse failed:', e.message);
+                        }
+                    }
+                }
+
+                // If still no result, show raw response
+                if (!result) {
+                    result = data;
+                }
+
+                lastResult = result;
+
+                if (result.success === false) {
+                    showStatus('error', result.message || result.error || '请求失败');
+                } else {
+                    showStatus('success', '请求成功');
+                }
+
+                displayResult(result);
+
+            } catch (error) {
+                showStatus('error', `请求失败: ${error.message}`);
+                console.error(error);
+            }
+        });
+
+        function showStatus(type, message) {
+            status.className = `status ${type}`;
+            status.classList.remove('hidden');
+            statusText.textContent = message;
+
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        function displayResult(result) {
+            resultContainer.classList.add('visible');
+
+            // JSON View
+            jsonContent.innerHTML = highlightJson(JSON.stringify(result, null, 2));
+
+            // Table View
+            if (currentAction === 'getAll' && result.tables) {
+                renderTablesInfo(result.tables);
+            } else if (currentAction === 'search' && result.records) {
+                renderRecords(result.records);
+            } else if (currentAction === 'details' && result.table) {
+                renderTableDetails(result);
+            } else {
+                tableContainer.innerHTML = '<div class="empty-state">无法以表格形式显示此数据，请切换到JSON视图</div>';
+            }
+        }
+
+        function renderTablesInfo(tables) {
+            if (!tables.length) {
+                tableContainer.innerHTML = '<div class="empty-state">没有找到数据表</div>';
+                return;
+            }
+
+            let html = '<table><thead><tr><th>表名</th><th>ID</th><th>列数</th><th>列信息</th></tr></thead><tbody>';
+
+            tables.forEach(table => {
+                const columns = table.columns.map(c => `<span class="chip">${c.name} (${c.type})</span>`).join(' ');
+                html += `<tr>
+                    <td><strong>${table.name}</strong></td>
+                    <td>${table.id}</td>
+                    <td>${table.columns.length}</td>
+                    <td>${columns || '-'}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            tableContainer.innerHTML = html;
+        }
+
+        function renderRecords(records) {
+            if (!records.length) {
+                tableContainer.innerHTML = '<div class="empty-state">没有找到匹配的记录</div>';
+                return;
+            }
+
+            // Get all field names
+            const fieldNames = new Set();
+            records.forEach(r => {
+                Object.keys(r.fields || {}).forEach(k => fieldNames.add(k));
+            });
+            const fields = Array.from(fieldNames);
+
+            let html = '<table><thead><tr><th>记录ID</th>';
+            fields.forEach(f => html += `<th>${f}</th>`);
+            html += '</tr></thead><tbody>';
+
+            records.forEach(record => {
+                html += `<tr><td style="font-size:0.75rem;color:var(--text-secondary)">${record.id}</td>`;
+                fields.forEach(f => {
+                    let value = record.fields[f];
+                    if (value === null || value === undefined) value = '-';
+                    else if (typeof value === 'object') value = JSON.stringify(value);
+                    html += `<td>${escapeHtml(String(value))}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            tableContainer.innerHTML = html;
+        }
+
+        function renderTableDetails(result) {
+            const table = result.table;
+            const sample = result.sampleData;
+
+            let html = `<div style="margin-bottom:1rem">
+                <strong>${table.name}</strong> 
+                <span class="chip">ID: ${table.id}</span>
+                <span class="chip">${table.columnCount} 列</span>
+            </div>`;
+
+            // Columns table
+            html += '<h4 style="margin:1rem 0 0.5rem;color:var(--text-secondary)">列定义</h4>';
+            html += '<table><thead><tr><th>列名</th><th>类型</th><th>字段ID</th></tr></thead><tbody>';
+            table.columns.forEach(col => {
+                html += `<tr><td>${col.name}</td><td><span class="chip">${col.type}</span></td><td style="font-size:0.75rem">${col.id}</td></tr>`;
+            });
+            html += '</tbody></table>';
+
+            // Sample data
+            if (sample && sample.records.length) {
+                html += '<h4 style="margin:1.5rem 0 0.5rem;color:var(--text-secondary)">示例数据</h4>';
+
+                const fields = table.columns.map(c => c.name);
+                html += '<table><thead><tr>';
+                fields.forEach(f => html += `<th>${f}</th>`);
+                html += '</tr></thead><tbody>';
+
+                sample.records.forEach(record => {
+                    html += '<tr>';
+                    fields.forEach(f => {
+                        let value = record.fields ? record.fields[f] : undefined;
+                        if (value === null || value === undefined) value = '-';
+                        else if (typeof value === 'object') value = JSON.stringify(value);
+                        html += `<td>${escapeHtml(String(value))}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+            }
+
+            tableContainer.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function highlightJson(json) {
+            return json
+                .replace(/(".*?")\s*:/g, '<span class="json-key">$1</span>:')
+                .replace(/:\s*(".*?")/g, ': <span class="json-string">$1</span>')
+                .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+                .replace(/:\s*(true|false)/g, ': <span class="json-boolean">$1</span>')
+                .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+        }
+
+        // Load token from localStorage if available
+        const savedToken = localStorage.getItem('wps_api_token');
+        if (savedToken) {
+            apiToken.value = savedToken;
+        }
+
+        // Save token on change
+        apiToken.addEventListener('change', () => {
+            localStorage.setItem('wps_api_token', apiToken.value);
+        });
+    </script>
+</body>
+
+</html>
