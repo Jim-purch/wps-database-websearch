@@ -22,7 +22,7 @@ const server = http.createServer((req, res) => {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, AirScript-Token');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, airscript_token');
 
     if (req.method === 'OPTIONS') {
         res.writeHead(200);
@@ -46,7 +46,7 @@ const server = http.createServer((req, res) => {
                 method: req.method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'AirScript-Token': req.headers['airscript-token'] || ''
+                    'airscript_token': req.headers['airscript_token'] || ''
                 }
             };
 
