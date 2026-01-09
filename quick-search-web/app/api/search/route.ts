@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-prod';
 
 // Helper to check auth (Allow both USER and ADMIN)
 const checkAuth = (request: Request) => {
@@ -9,10 +12,9 @@ const checkAuth = (request: Request) => {
 
     try {
         const token = authHeader.split(' ')[1];
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [username, role] = decoded.split(':');
-        if (!username || !role) return null;
-        return { username, role };
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        if (!decoded || !decoded.username || !decoded.role) return null;
+        return decoded;
     } catch (e) {
         return null;
     }
@@ -24,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { scriptConfigId, searchText, sheetName } = body;
+    const { scriptConfigId, searchText, sheetName, fieldName, getColumns } = body;
 
     if (!scriptConfigId) {
         return NextResponse.json({ error: 'Config ID required' }, { status: 400 });
@@ -46,7 +48,9 @@ export async function POST(request: Request) {
             Context: {
                 argv: {
                     sheet_name: sheetName, // Optional
-                    search_text: searchText
+                    search_text: searchText,
+                    field_name: fieldName,
+                    get_columns: getColumns // Boolean
                 }
             }
         };

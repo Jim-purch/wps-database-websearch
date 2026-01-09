@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-change-in-prod';
 
 // Helper to check auth
 const checkAuth = (request: Request, requiredRole?: string) => {
@@ -7,14 +10,13 @@ const checkAuth = (request: Request, requiredRole?: string) => {
     if (!authHeader) return null;
 
     try {
-        const token = authHeader.split(' ')[1]; // Bearer <token>
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [username, role] = decoded.split(':');
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-        if (!username || !role) return null;
-        if (requiredRole && role !== requiredRole) return null;
+        if (!decoded || !decoded.username || !decoded.role) return null;
+        if (requiredRole && decoded.role !== requiredRole) return null;
 
-        return { username, role };
+        return decoded;
     } catch (e) {
         return null;
     }

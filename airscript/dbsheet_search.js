@@ -1,13 +1,16 @@
 // DB Sheet Search Script
-// Designed to filter records based on search text.
-// Input via Context.argv:
-// - sheet_name: (Optional) Name of the sheet to search. Defaults to active or first.
-// - search_text: (Optional) Text to search for. If empty, returns all (limited).
+// Context.argv:
+// - sheet_name: (Optional)
+// - search_text: (Optional)
+// - field_name: (Optional) If provided, search only this field.
+// - get_columns: (Boolean) If true, return columns only.
 
 function main() {
     const argv = Context.argv || {};
     const sheetName = argv.sheet_name;
     const searchText = argv.search_text || "";
+    const fieldName = argv.field_name || "";
+    const getColumns = argv.get_columns === true || argv.get_columns === "true";
 
     // Determine Sheet ID
     let sheetId = null;
@@ -44,16 +47,14 @@ function main() {
             console.log("Error getting fields: " + e);
         }
 
-        // Construct Filter
-        // Note: Generic "Search all fields" is complex in DB Sheet API if we have to specify field.
-        // If searchText is provided, we try to match against *any* text field or just iterate.
-        // Application.Record.GetRecords supports a Filter object.
-
-        // Strategy: If specific column search isn't supported easily across "all",
-        // we might fetch a page and filter in memory, OR try to construct a complex OR filter.
-        // For simplicity and "Quick Query" website, fetching recent records and filtering is often safer
-        // if the API doesn't support "Any Field Contains X".
-        // However, `getAllTablesInfo.js` example shows `criteria` with `field`.
+        if (getColumns) {
+            return {
+                success: true,
+                sheet: sheetNameActual,
+                columns: columns,
+                records: []
+            };
+        }
 
         let records = [];
 
@@ -66,15 +67,30 @@ function main() {
 
         let rawRecords = result.records;
 
-        // In-memory filter for generic search (since building OR for all columns is verbose)
         if (searchText) {
             const lowerSearch = String(searchText).toLowerCase();
             records = rawRecords.filter(r => {
-                // Check all properties of the record object
-                // Record object keys are field IDs/Names
-                return Object.values(r.fields || {}).some(val =>
-                    String(val).toLowerCase().includes(lowerSearch)
-                );
+                const fields = r.fields || {};
+
+                if (fieldName) {
+                    // Search specific field
+                    // DB Sheet API usually maps field names to IDs or Names in the record object
+                    // We assume `fields` keys are Field Names for simplicity in this wrapper,
+                    // OR we check if the key matches the fieldName.
+                    // Note: In real DB Sheet, keys might be IDs.
+                    // But `getAllTablesInfo.js` implied generic access.
+                    // We try to match key by name.
+                    const val = fields[fieldName];
+                    if (val !== undefined && val !== null) {
+                        return String(val).toLowerCase().includes(lowerSearch);
+                    }
+                    return false;
+                } else {
+                    // Search all
+                    return Object.values(fields).some(val =>
+                        String(val).toLowerCase().includes(lowerSearch)
+                    );
+                }
             });
         } else {
             records = rawRecords;

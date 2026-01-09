@@ -11,6 +11,9 @@ interface Config {
 export default function SearchPage() {
   const [configs, setConfigs] = useState<Config[]>([]);
   const [selectedConfig, setSelectedConfig] = useState('');
+  const [availableColumns, setAvailableColumns] = useState<any[]>([]);
+  const [selectedField, setSelectedField] = useState('');
+
   const [searchText, setSearchText] = useState('');
   const [sheetName, setSheetName] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -38,10 +41,50 @@ export default function SearchPage() {
       })
       .then(data => {
         setConfigs(data);
-        if (data.length > 0) setSelectedConfig(data[0].id);
+        if (data.length > 0) {
+            setSelectedConfig(data[0].id);
+        }
       })
       .catch(() => router.push('/login'));
   }, []);
+
+  // Effect to load columns when config changes.
+  // Removed sheetName from dependency to avoid rapid API calls.
+  // Sheet name changes will only fetch on manual action or blur (if added).
+  // Here we only auto-fetch if config changes.
+  useEffect(() => {
+      if(selectedConfig) {
+          fetchColumns();
+      }
+  }, [selectedConfig]);
+
+  const fetchColumns = async () => {
+      const token = localStorage.getItem('token');
+      if(!token) return;
+
+      try {
+        const res = await fetch('/api/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              scriptConfigId: selectedConfig,
+              sheetName: sheetName,
+              getColumns: true
+            })
+        });
+        const data = await res.json();
+        if(data.success && data.data && data.data.columns) {
+            setAvailableColumns(data.data.columns);
+        } else {
+            setAvailableColumns([]);
+        }
+      } catch(e) {
+          console.log("Error fetching columns", e);
+      }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +105,8 @@ export default function SearchPage() {
         body: JSON.stringify({
           scriptConfigId: selectedConfig,
           searchText,
-          sheetName
+          sheetName,
+          fieldName: selectedField
         })
       });
       const data = await res.json();
@@ -102,7 +146,7 @@ export default function SearchPage() {
       </div>
 
       <div className="bg-white p-6 rounded shadow mb-8">
-        <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Data Source</label>
             <select
@@ -114,13 +158,28 @@ export default function SearchPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sheet Name (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sheet Name</label>
             <input
               className="w-full border p-2 rounded"
               value={sheetName}
               onChange={(e) => setSheetName(e.target.value)}
+              onBlur={() => fetchColumns()} // Fetch columns on blur
               placeholder="e.g. Sheet1"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Field</label>
+            <select
+              className="w-full border p-2 rounded"
+              value={selectedField}
+              onChange={(e) => setSelectedField(e.target.value)}
+            >
+                <option value="">All Fields</option>
+                {availableColumns.map((col, idx) => {
+                    const name = typeof col === 'string' ? col : col.name;
+                    return <option key={idx} value={name}>{name}</option>;
+                })}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Search Text</label>
